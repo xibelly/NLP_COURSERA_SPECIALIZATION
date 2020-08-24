@@ -1,21 +1,34 @@
-import re
 import string
-
-from nltk.corpus import stopwords
-from nltk.stem import PorterStemmer
+import re
+import os
+import nltk
+nltk.download('twitter_samples')
+nltk.download('stopwords')
 from nltk.tokenize import TweetTokenizer
+from nltk.corpus import stopwords, twitter_samples 
 
+tweet_tokenizer = TweetTokenizer(preserve_case=False, strip_handles=True, reduce_len=True)
+
+# Stop words are messy and not that compelling; 
+# "very" and "not" are considered stop words, but they are obviously expressing sentiment
+
+# The porter stemmer lemmatizes "was" to "wa".  Seriously???
+
+# I'm not sure we want to get into stop words
+stopwords_english = stopwords.words('english')
+
+# Also have my doubts about stemming...
+from nltk.stem import PorterStemmer
+stemmer = PorterStemmer()
 
 def process_tweet(tweet):
     '''
-    Input:
+    Input: 
         tweet: a string containing a tweet
     Output:
         tweets_clean: a list of words containing the processed tweet
-
+    
     '''
-    stemmer = PorterStemmer()
-    stopwords_english = stopwords.words('english')
     # remove stock market tickers like $GE
     tweet = re.sub(r'\$\w*', '', tweet)
     # remove old style retweet text "RT"
@@ -26,45 +39,47 @@ def process_tweet(tweet):
     # only removing the hash # sign from the word
     tweet = re.sub(r'#', '', tweet)
     # tokenize tweets
-    tokenizer = TweetTokenizer(preserve_case=False, strip_handles=True,
-                               reduce_len=True)
+    tokenizer = TweetTokenizer(preserve_case=False, strip_handles=True, reduce_len=True)
     tweet_tokens = tokenizer.tokenize(tweet)
-
+    ### START CODE HERE ###
     tweets_clean = []
     for word in tweet_tokens:
-        if (word not in stopwords_english and  # remove stopwords
-            word not in string.punctuation):  # remove punctuation
-            # tweets_clean.append(word)
-            stem_word = stemmer.stem(word)  # stemming word
+        if (word not in stopwords_english and # remove stopwords
+            word not in string.punctuation): # remove punctuation
+            #tweets_clean.append(word)
+            stem_word = stemmer.stem(word) # stemming word
             tweets_clean.append(stem_word)
-
+    ### END CODE HERE ###
     return tweets_clean
 
 
-def test_lookup(func):
-    freqs = {('sad', 0): 4,
-             ('happy', 1): 12,
-             ('oppressed', 0): 7}
-    word = 'happy'
-    label = 1
-    if func(freqs, word, label) == 12:
-        return 'SUCCESS!!'
-    return 'Failed Sanity Check!'
+# let's not reuse variables
+#all_positive_tweets = twitter_samples.strings('positive_tweets.json')
+#all_negative_tweets = twitter_samples.strings('negative_tweets.json')
 
+def load_tweets():
+    all_positive_tweets = twitter_samples.strings('positive_tweets.json')
+    all_negative_tweets = twitter_samples.strings('negative_tweets.json')  
+    return all_positive_tweets, all_negative_tweets
+    
+# Layers have weights and a foward function.
+# They create weights when layer.initialize is called and use them.
+# remove this or make it optional 
 
-def lookup(freqs, word, label):
-    '''
-    Input:
-        freqs: a dictionary with the frequency of each pair (or tuple)
-        word: the word to look up
-        label: the label corresponding to the word
-    Output:
-        n: the number of times the word with its corresponding label appears.
-    '''
-    n = 0  # freqs.get((word, label), 0)
+class Layer(object):
+    """Base class for layers."""
+    def __init__(self):
+        self.weights = None
 
-    pair = (word, label)
-    if (pair in freqs):
-        n = freqs[pair]
+    def forward(self, x):
+        raise NotImplementedError
+  
+    def init_weights_and_state(self, input_signature, random_key):
+        pass
 
-    return n
+    def init(self, input_signature, random_key):
+        self.init_weights_and_state(input_signature, random_key)
+        return self.weights
+    
+    def __call__(self, x):
+        return self.forward(x)
